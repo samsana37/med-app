@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { getCurrentUser } from "~/lib/auth";
 import { api } from "~/trpc/react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
@@ -9,20 +9,36 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import Link from "next/link";
 import { toast } from "sonner";
 import { Copy } from "lucide-react";
+import { QuickMoodEntry } from "~/components/quick-mood-entry";
 
 export default function DashboardPage() {
   const user = getCurrentUser();
   const userId = user?.id ?? 1;
   const [isEmergencyOpen, setIsEmergencyOpen] = useState(false);
 
-  const { data: medications } = api.medication.getActive.useQuery({ userId });
-  const { data: caregivers } = api.caregiver.getAll.useQuery({ userId });
-  const { data: symptoms } = api.symptom.getAll.useQuery({ userId });
-  const { data: moodEntries } = api.mood.getAll.useQuery({ userId });
+  // Enable real-time updates with refetch intervals
+  const { data: medications, refetch: refetchMedications } = api.medication.getActive.useQuery(
+    { userId },
+    { refetchInterval: 30000 } // Refetch every 30 seconds
+  );
+  const { data: caregivers, refetch: refetchCaregivers } = api.caregiver.getAll.useQuery(
+    { userId },
+    { refetchInterval: 60000 } // Refetch every minute
+  );
+  const { data: symptoms, refetch: refetchSymptoms } = api.symptom.getAll.useQuery(
+    { userId },
+    { refetchInterval: 45000 } // Refetch every 45 seconds
+  );
+  const { data: moodEntries, refetch: refetchMoods } = api.mood.getAll.useQuery(
+    { userId },
+    { refetchInterval: 60000 } // Refetch every minute
+  );
 
   const triggerAlert = api.caregiver.triggerAlert.useMutation({
     onSuccess: () => {
       toast.success("Emergency alert logged");
+      // Refetch data after alert
+      void refetchCaregivers();
     },
   });
 
@@ -54,25 +70,43 @@ ${caregivers?.map((c) => `
     toast.success("Emergency information copied to clipboard");
   };
 
-  // Get recent symptoms (last 7 days)
+  // Get recent symptoms (last 7 days) - real-time calculated
   const recentSymptoms = symptoms?.filter((s) => {
     const symptomDate = new Date(s.symptomDate);
     const daysAgo = (Date.now() - symptomDate.getTime()) / (1000 * 60 * 60 * 24);
     return daysAgo <= 7;
   }).length ?? 0;
 
-  // Get mood entries this month
+  // Get mood entries this month - real-time calculated
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
   const monthlyMoods = moodEntries?.filter((m) => {
+    if (!m.entryDate) return false;
     const entryDate = new Date(m.entryDate);
     return entryDate.getMonth() === currentMonth && entryDate.getFullYear() === currentYear;
   }).length ?? 0;
+
+  // Real-time clock
+  const [currentTime, setCurrentTime] = useState(new Date());
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="mt-2 text-gray-600">Welcome to your health management center</p>
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+          <p className="mt-2 text-gray-600">Welcome to your health management center</p>
+        </div>
+        <div className="text-right">
+          <p className="text-sm text-gray-500">Live Updates</p>
+          <p className="text-lg font-mono font-semibold text-blue-600">
+            {currentTime.toLocaleTimeString()}
+          </p>
+        </div>
       </div>
 
       {/* Emergency Alert Button */}
@@ -144,8 +178,15 @@ ${caregivers?.map((c) => `
             <CardTitle className="text-lg">Today's Medications</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">{medications?.length ?? 0}</p>
-            <p className="text-sm text-gray-600">to take</p>
+            <div className="flex items-baseline justify-between">
+              <div>
+                <p className="text-3xl font-bold text-blue-600">{medications?.length ?? 0}</p>
+                <p className="text-sm text-gray-600">to take</p>
+              </div>
+              {medications && medications.length > 0 && (
+                <span className="h-3 w-3 bg-green-500 rounded-full animate-pulse" />
+              )}
+            </div>
           </CardContent>
         </Card>
         <Card>
@@ -153,8 +194,15 @@ ${caregivers?.map((c) => `
             <CardTitle className="text-lg">Recent Symptoms</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">{recentSymptoms}</p>
-            <p className="text-sm text-gray-600">this week</p>
+            <div className="flex items-baseline justify-between">
+              <div>
+                <p className="text-3xl font-bold text-orange-600">{recentSymptoms}</p>
+                <p className="text-sm text-gray-600">this week</p>
+              </div>
+              {recentSymptoms > 0 && (
+                <span className="h-3 w-3 bg-orange-500 rounded-full animate-pulse" />
+              )}
+            </div>
           </CardContent>
         </Card>
         <Card>
@@ -162,8 +210,15 @@ ${caregivers?.map((c) => `
             <CardTitle className="text-lg">Mood Entries</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">{monthlyMoods}</p>
-            <p className="text-sm text-gray-600">this month</p>
+            <div className="flex items-baseline justify-between">
+              <div>
+                <p className="text-3xl font-bold text-purple-600">{monthlyMoods}</p>
+                <p className="text-sm text-gray-600">this month</p>
+              </div>
+              {monthlyMoods > 0 && (
+                <span className="h-3 w-3 bg-purple-500 rounded-full animate-pulse" />
+              )}
+            </div>
           </CardContent>
         </Card>
         <Card>
@@ -171,8 +226,15 @@ ${caregivers?.map((c) => `
             <CardTitle className="text-lg">Caregivers</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">{caregivers?.length ?? 0}</p>
-            <p className="text-sm text-gray-600">contacts</p>
+            <div className="flex items-baseline justify-between">
+              <div>
+                <p className="text-3xl font-bold text-green-600">{caregivers?.length ?? 0}</p>
+                <p className="text-sm text-gray-600">contacts</p>
+              </div>
+              {caregivers && caregivers.length > 0 && (
+                <span className="h-3 w-3 bg-green-500 rounded-full animate-pulse" />
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -237,16 +299,10 @@ ${caregivers?.map((c) => `
         <Card>
           <CardHeader>
             <CardTitle>Quick Mood Entry</CardTitle>
-            <CardDescription>How are you feeling today?</CardDescription>
+            <CardDescription>How are you feeling right now?</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex space-x-2">
-              <Button variant="outline" size="sm">😢</Button>
-              <Button variant="outline" size="sm">😟</Button>
-              <Button variant="outline" size="sm">😐</Button>
-              <Button variant="outline" size="sm">🙂</Button>
-              <Button variant="outline" size="sm">😊</Button>
-            </div>
+            <QuickMoodEntry userId={userId} onSuccess={() => void refetchMoods()} />
           </CardContent>
         </Card>
       </div>

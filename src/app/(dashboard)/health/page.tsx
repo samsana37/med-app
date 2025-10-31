@@ -17,7 +17,11 @@ export default function HealthPage() {
   const user = getCurrentUser();
   const userId = user?.id ?? 1;
 
-  const { data: vitalSigns, refetch } = api.health.getAllVitalSigns.useQuery({ userId });
+  // Real-time updates for vital signs
+  const { data: vitalSigns, refetch } = api.health.getAllVitalSigns.useQuery(
+    { userId },
+    { refetchInterval: 60000 } // Update every minute
+  );
   const createVitalSign = api.health.createVitalSign.useMutation({
     onSuccess: () => {
       toast.success("Vital sign logged successfully");

@@ -13,14 +13,39 @@ config({ path: resolve(process.cwd(), ".env") });
 // Directly connect to database for seeding (bypass env validation)
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
-import { medicines, conditions } from "~/server/db/schema";
+import { eq } from "drizzle-orm";
+import {
+  medicines,
+  conditions,
+  users,
+  medications,
+  medicationLogs,
+  moodEntries,
+  journalEntries,
+  symptoms,
+  vitalSigns,
+  caregivers,
+} from "~/server/db/schema";
 
 if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL is not set in .env file");
 }
 
 const sql = postgres(process.env.DATABASE_URL);
-const db = drizzle(sql, { schema: { medicines, conditions } });
+const db = drizzle(sql, {
+  schema: {
+    medicines,
+    conditions,
+    users,
+    medications,
+    medicationLogs,
+    moodEntries,
+    journalEntries,
+    symptoms,
+    vitalSigns,
+    caregivers,
+  },
+});
 
 const medicineData = [
   {
@@ -228,16 +253,415 @@ const conditionData = [
   },
 ];
 
+// Demo user data
+const demoUserData = {
+  email: "demo@medalert.com",
+  name: "John Doe",
+  age: 35,
+  bloodType: "O+",
+  allergies: "Penicillin, Shellfish",
+};
+
+// Demo medications
+const demoMedications = [
+  {
+    name: "Aspirin",
+    dosage: "100mg",
+    times: ["8:00 AM", "8:00 PM"],
+    active: true,
+  },
+  {
+    name: "Metformin",
+    dosage: "500mg",
+    times: ["7:00 AM", "7:00 PM"],
+    active: true,
+  },
+  {
+    name: "Lisinopril",
+    dosage: "10mg",
+    times: ["9:00 AM"],
+    active: true,
+  },
+];
+
+// Demo caregivers
+const demoCaregivers = [
+  {
+    name: "Sarah Doe",
+    relationship: "Spouse",
+    phone: "+1 (555) 123-4567",
+    email: "sarah.doe@example.com",
+  },
+  {
+    name: "Dr. Michael Smith",
+    relationship: "Primary Care Physician",
+    phone: "+1 (555) 234-5678",
+    email: "m.smith@healthclinic.com",
+  },
+  {
+    name: "Emergency Contact",
+    relationship: "Friend",
+    phone: "+1 (555) 345-6789",
+    email: "emergency@example.com",
+  },
+];
+
+// Generate mood entries for last 30 days
+function generateMoodEntries(userId: number) {
+  const entries = [];
+  const today = new Date();
+  
+  for (let i = 0; i < 30; i++) {
+    const date = new Date(today);
+    date.setDate(date.getDate() - i);
+    
+    // Simulate realistic mood patterns (better on weekends, some variation)
+    const dayOfWeek = date.getDay();
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+    const baseMood = isWeekend ? 4 : 3;
+    const mood = Math.max(1, Math.min(5, baseMood + Math.floor(Math.random() * 3) - 1));
+    
+    entries.push({
+      userId,
+      mood,
+      notes: i % 5 === 0 ? `Feeling ${mood >= 4 ? "good" : mood <= 2 ? "down" : "okay"} today` : null,
+      entryDate: date.toISOString().split("T")[0],
+    });
+  }
+  
+  return entries;
+}
+
+// Generate journal entries
+function generateJournalEntries(userId: number) {
+  const titles = [
+    "Weekly Reflection",
+    "Feeling Grateful Today",
+    "Health Check-in",
+    "Mental Wellness Notes",
+    "Daily Thoughts",
+    "Progress Update",
+    "Weekend Recap",
+  ];
+  
+  const contents = [
+    "This week has been pretty good overall. I've been consistent with my medications and feeling better.",
+    "Today I'm grateful for my health, family, and the ability to manage my conditions effectively.",
+    "Regular check-in: mood is stable, symptoms are manageable. Need to continue following my medication schedule.",
+    "Mental health is just as important as physical health. Taking time for self-care makes a huge difference.",
+    "Had a good day today. Managed to stay on top of all my medications and felt energetic.",
+    "Noticed improvement in my overall well-being since starting to track everything in this app.",
+    "Weekend was relaxing. Used the time to catch up on rest and take care of myself.",
+  ];
+  
+  const entries = [];
+  const today = new Date();
+  
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(today);
+    date.setDate(date.getDate() - i * 3); // Spread entries over 3 weeks
+    
+    entries.push({
+      userId,
+      title: titles[i] ?? `Entry ${i + 1}`,
+      content: contents[i] ?? "This is a sample journal entry.",
+      entryDate: date.toISOString().split("T")[0],
+    });
+  }
+  
+  return entries;
+}
+
+// Generate symptoms
+function generateSymptoms(userId: number) {
+  const symptomNames = [
+    "Headache",
+    "Fatigue",
+    "Joint Pain",
+    "Dizziness",
+    "Nausea",
+    "Chest Tightness",
+    "Shortness of Breath",
+    "Mild Fever",
+    "Muscle Aches",
+  ];
+  
+  const severities: Array<"Mild" | "Moderate" | "Severe"> = ["Mild", "Moderate", "Severe"];
+  
+  const entries = [];
+  const today = new Date();
+  
+  // Add symptoms over the last 2 weeks
+  for (let i = 0; i < 8; i++) {
+    const date = new Date(today);
+    date.setDate(date.getDate() - i * 2);
+    
+    const symptomName = symptomNames[Math.floor(Math.random() * symptomNames.length)]!;
+    const severity = severities[Math.floor(Math.random() * severities.length)]!;
+    
+    entries.push({
+      userId,
+      name: symptomName,
+      severity,
+      notes: severity === "Severe" ? "Worth monitoring closely" : severity === "Moderate" ? "Manageable but noticeable" : "Mild discomfort",
+      symptomDate: date.toISOString().split("T")[0],
+    });
+  }
+  
+  return entries;
+}
+
+// Generate vital signs
+function generateVitalSigns(userId: number) {
+  const entries = [];
+  const today = new Date();
+  
+  // Blood pressure readings (normal range: 90-120/60-80)
+  for (let i = 0; i < 10; i++) {
+    const date = new Date(today);
+    date.setDate(date.getDate() - i * 2);
+    date.setHours(8 + Math.floor(Math.random() * 12)); // Random time during day
+    
+    const systolic = 110 + Math.floor(Math.random() * 15);
+    const diastolic = 70 + Math.floor(Math.random() * 10);
+    
+    entries.push({
+      userId,
+      type: "blood_pressure",
+      value: `${systolic}/${diastolic}`,
+      recordedAt: date,
+    });
+  }
+  
+  // Heart rate readings (normal: 60-100 bpm)
+  for (let i = 0; i < 8; i++) {
+    const date = new Date(today);
+    date.setDate(date.getDate() - i * 2.5);
+    date.setHours(8 + Math.floor(Math.random() * 12));
+    
+    const heartRate = 65 + Math.floor(Math.random() * 25);
+    
+    entries.push({
+      userId,
+      type: "heart_rate",
+      value: `${heartRate} bpm`,
+      recordedAt: date,
+    });
+  }
+  
+  // Temperature readings (normal: 98.6°F)
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(today);
+    date.setDate(date.getDate() - i * 3);
+    date.setHours(8 + Math.floor(Math.random() * 12));
+    
+    const temp = 97.5 + Math.random() * 1.5;
+    
+    entries.push({
+      userId,
+      type: "temperature",
+      value: `${temp.toFixed(1)}°F`,
+      recordedAt: date,
+    });
+  }
+  
+  // Weight readings
+  for (let i = 0; i < 5; i++) {
+    const date = new Date(today);
+    date.setDate(date.getDate() - i * 5);
+    date.setHours(8);
+    
+    const weight = 165 + Math.random() * 10; // Fluctuating around 170 lbs
+    
+    entries.push({
+      userId,
+      type: "weight",
+      value: `${weight.toFixed(1)} lbs`,
+      recordedAt: date,
+    });
+  }
+  
+  return entries;
+}
+
+// Generate medication logs
+function generateMedicationLogs(userId: number, medicationIds: number[]): Array<{ medicationId: number; userId: number; takenAt: Date }> {
+  const logs: Array<{ medicationId: number; userId: number; takenAt: Date }> = [];
+  const today = new Date();
+  
+  // Log medications taken over the last 7 days
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(today);
+    date.setDate(date.getDate() - i);
+    
+    // Each medication might have been taken multiple times
+    medicationIds.forEach((medId) => {
+      // 80% chance of taking medication each day
+      if (Math.random() > 0.2) {
+        const takenAt = new Date(date);
+        takenAt.setHours(8 + Math.floor(Math.random() * 12)); // Random time during day
+        
+        logs.push({
+          medicationId: medId,
+          userId,
+          takenAt,
+        });
+      }
+    });
+  }
+  
+  return logs;
+}
+
 export async function seed() {
-  console.log("Seeding medicines...");
+  console.log("🌱 Starting database seed...");
+
+  // Seed medicines
+  console.log("📦 Seeding medicines...");
   await db.insert(medicines).values(medicineData).onConflictDoNothing();
-  console.log(`Seeded ${medicineData.length} medicines`);
+  console.log(`✅ Seeded ${medicineData.length} medicines`);
 
-  console.log("Seeding conditions...");
+  // Seed conditions
+  console.log("📋 Seeding conditions...");
   await db.insert(conditions).values(conditionData).onConflictDoNothing();
-  console.log(`Seeded ${conditionData.length} conditions`);
+  console.log(`✅ Seeded ${conditionData.length} conditions`);
 
-  console.log("Seed completed!");
+  // Check if demo user exists, create if not
+  console.log("👤 Creating demo user...");
+  const allUsers = await db.query.users.findMany();
+  const existingUser = allUsers.find((u) => u.email === demoUserData.email);
+
+  let userId: number;
+  if (existingUser) {
+    userId = existingUser.id;
+    console.log(`✅ Demo user already exists (ID: ${userId})`);
+    
+    // Update user with demo data
+    await db
+      .update(users)
+      .set(demoUserData)
+      .where(eq(users.id, userId));
+    console.log("✅ Updated demo user profile");
+  } else {
+    const [newUser] = await db.insert(users).values(demoUserData).returning();
+    userId = newUser!.id;
+    console.log(`✅ Created demo user (ID: ${userId})`);
+  }
+
+  // Seed caregivers
+  console.log("👥 Seeding caregivers...");
+  const existingCaregivers = await db.query.caregivers.findMany({
+    where: (caregivers, { eq }) => eq(caregivers.userId, userId),
+  });
+
+  if (existingCaregivers.length === 0) {
+    const caregiverInserts = demoCaregivers.map((caregiver) => ({
+      ...caregiver,
+      userId,
+    }));
+    await db.insert(caregivers).values(caregiverInserts);
+    console.log(`✅ Seeded ${demoCaregivers.length} caregivers`);
+  } else {
+    console.log(`✅ Caregivers already exist (${existingCaregivers.length})`);
+  }
+
+  // Seed medications
+  console.log("💊 Seeding medications...");
+  const allMedications = await db.query.medications.findMany();
+  const existingMedications = allMedications.filter((m) => m.userId === userId);
+
+  let medicationIds: number[];
+  if (existingMedications.length === 0) {
+    const medicationInserts = demoMedications.map((med) => ({
+      ...med,
+      userId,
+    }));
+    const inserted = await db.insert(medications).values(medicationInserts).returning();
+    medicationIds = inserted.map((m) => m.id);
+    console.log(`✅ Seeded ${demoMedications.length} medications`);
+  } else {
+    medicationIds = existingMedications.map((m) => m.id);
+    console.log(`✅ Medications already exist (${existingMedications.length})`);
+  }
+
+  // Seed medication logs
+  console.log("📝 Seeding medication logs...");
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const allLogs = await db.query.medicationLogs.findMany();
+  const existingLogs = allLogs.filter(
+    (log) => log.userId === userId && new Date(log.takenAt) >= sevenDaysAgo
+  );
+
+  if (existingLogs.length === 0) {
+    const logs = generateMedicationLogs(userId, medicationIds);
+    await db.insert(medicationLogs).values(logs);
+    console.log(`✅ Seeded ${logs.length} medication logs`);
+  } else {
+    console.log(`✅ Medication logs already exist (${existingLogs.length})`);
+  }
+
+  // Seed mood entries
+  console.log("😊 Seeding mood entries...");
+  const allMoods = await db.query.moodEntries.findMany();
+  const existingMoods = allMoods.filter((m) => m.userId === userId);
+
+  if (existingMoods.length === 0) {
+    const moodData = generateMoodEntries(userId);
+    await db.insert(moodEntries).values(moodData);
+    console.log(`✅ Seeded ${moodData.length} mood entries`);
+  } else {
+    console.log(`✅ Mood entries already exist (${existingMoods.length})`);
+  }
+
+  // Seed journal entries
+  console.log("📔 Seeding journal entries...");
+  const allJournals = await db.query.journalEntries.findMany();
+  const existingJournals = allJournals.filter((j) => j.userId === userId);
+
+  if (existingJournals.length === 0) {
+    const journalData = generateJournalEntries(userId);
+    await db.insert(journalEntries).values(journalData);
+    console.log(`✅ Seeded ${journalData.length} journal entries`);
+  } else {
+    console.log(`✅ Journal entries already exist (${existingJournals.length})`);
+  }
+
+  // Seed symptoms
+  console.log("🤒 Seeding symptoms...");
+  const allSymptoms = await db.query.symptoms.findMany();
+  const existingSymptoms = allSymptoms.filter((s) => s.userId === userId);
+
+  if (existingSymptoms.length === 0) {
+    const symptomData = generateSymptoms(userId);
+    await db.insert(symptoms).values(symptomData);
+    console.log(`✅ Seeded ${symptomData.length} symptoms`);
+  } else {
+    console.log(`✅ Symptoms already exist (${existingSymptoms.length})`);
+  }
+
+  // Seed vital signs
+  console.log("💓 Seeding vital signs...");
+  const allVitals = await db.query.vitalSigns.findMany();
+  const existingVitals = allVitals.filter((v) => v.userId === userId);
+
+  if (existingVitals.length === 0) {
+    const vitalData = generateVitalSigns(userId);
+    await db.insert(vitalSigns).values(vitalData);
+    console.log(`✅ Seeded ${vitalData.length} vital signs`);
+  } else {
+    console.log(`✅ Vital signs already exist (${existingVitals.length})`);
+  }
+
+  console.log("\n🎉 Seed completed successfully!");
+  console.log("\n📊 Summary:");
+  console.log(`   - User: ${demoUserData.email}`);
+  console.log(`   - Medications: ${demoMedications.length}`);
+  console.log(`   - Caregivers: ${demoCaregivers.length}`);
+  console.log(`   - Mood entries: 30 days`);
+  console.log(`   - Journal entries: 7 entries`);
+  console.log(`   - Symptoms: 8 entries`);
+  console.log(`   - Vital signs: ~30 entries`);
+  console.log(`   - Medication logs: Multiple entries`);
 }
 
 // Run seed if this file is executed directly

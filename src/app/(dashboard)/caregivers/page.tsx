@@ -15,7 +15,11 @@ export default function CaregiversPage() {
   const user = getCurrentUser();
   const userId = user?.id ?? 1;
 
-  const { data: caregivers, refetch } = api.caregiver.getAll.useQuery({ userId });
+  // Real-time updates for caregivers
+  const { data: caregivers, refetch } = api.caregiver.getAll.useQuery(
+    { userId },
+    { refetchInterval: 60000 } // Update every minute
+  );
   const createCaregiver = api.caregiver.create.useMutation({
     onSuccess: () => {
       toast.success("Emergency contact added successfully");

@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/com
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "~/components/ui/dialog";
 import { toast } from "sonner";
 import { Plus, BookOpen, Trash2 } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 const moodEmojis = [
   { value: 1, emoji: "😢", label: "Very Sad" },
@@ -24,8 +25,15 @@ export default function MoodPage() {
   const user = getCurrentUser();
   const userId = user?.id ?? 1;
 
-  const { data: moodEntries, refetch } = api.mood.getAll.useQuery({ userId });
-  const { data: journals, refetch: refetchJournals } = api.mood.getAllJournals.useQuery({ userId });
+  // Real-time updates for mood entries
+  const { data: moodEntries, refetch } = api.mood.getAll.useQuery(
+    { userId },
+    { refetchInterval: 60000 } // Update every minute
+  );
+  const { data: journals, refetch: refetchJournals } = api.mood.getAllJournals.useQuery(
+    { userId },
+    { refetchInterval: 60000 } // Update every minute
+  );
 
   const createMood = api.mood.create.useMutation({
     onSuccess: () => {
@@ -116,6 +124,17 @@ export default function MoodPage() {
     if (mood === 3) return "bg-yellow-200";
     return "bg-green-200";
   };
+
+  // Prepare data for line chart (last 30 days)
+  const chartData = last30Days.map((date) => {
+    if (!date) return null;
+    const entry = getMoodForDate(date);
+    return {
+      date: new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+      mood: entry?.mood ?? null,
+      fullDate: date,
+    };
+  }).filter((d): d is { date: string; mood: number; fullDate: string } => d !== null && d.mood !== null && d.date !== "");
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -242,6 +261,56 @@ export default function MoodPage() {
               </Button>
             ))}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Mood Trend Line Chart */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Mood Trends</CardTitle>
+          <CardDescription>Line chart showing your mood over the last 30 days</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {chartData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis 
+                  dataKey="date" 
+                  tick={{ fontSize: 12 }}
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                />
+                <YAxis 
+                  domain={[1, 5]}
+                  tick={{ fontSize: 12 }}
+                  label={{ value: "Mood (1-5)", angle: -90, position: "insideLeft" }}
+                />
+                <Tooltip 
+                  formatter={(value: number) => [
+                    moodEmojis.find((m) => m.value === value)?.label ?? value,
+                    "Mood"
+                  ]}
+                  labelFormatter={(label) => `Date: ${label}`}
+                />
+                <Legend />
+                <Line 
+                  type="monotone" 
+                  dataKey="mood" 
+                  stroke="#3b82f6" 
+                  strokeWidth={2}
+                  dot={{ r: 4 }}
+                  activeDot={{ r: 6 }}
+                  name="Mood Level"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-[300px] flex items-center justify-center text-gray-500">
+              <p>No mood data to display. Start logging your mood to see trends!</p>
+            </div>
+          )}
         </CardContent>
       </Card>
 

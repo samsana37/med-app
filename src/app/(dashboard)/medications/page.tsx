@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { getCurrentUser } from "~/lib/auth";
 import { api } from "~/trpc/react";
 import { Button } from "~/components/ui/button";
@@ -15,12 +15,20 @@ export default function MedicationsPage() {
   const user = getCurrentUser();
   const userId = user?.id ?? 1;
 
-  const { data: medications, refetch } = api.medication.getAll.useQuery({ userId });
-  const { data: activeMedications } = api.medication.getActive.useQuery({ userId });
+  // Real-time updates for medications
+  const { data: medications, refetch } = api.medication.getAll.useQuery(
+    { userId },
+    { refetchInterval: 30000 } // Update every 30 seconds
+  );
+  const { data: activeMedications, refetch: refetchActive } = api.medication.getActive.useQuery(
+    { userId },
+    { refetchInterval: 30000 } // Update every 30 seconds
+  );
   const createMedication = api.medication.create.useMutation({
     onSuccess: () => {
       toast.success("Medication added successfully");
-      refetch();
+      void refetch();
+      void refetchActive();
       setIsDialogOpen(false);
     },
     onError: (error) => {
@@ -31,7 +39,8 @@ export default function MedicationsPage() {
   const logMedication = api.medication.logTaken.useMutation({
     onSuccess: () => {
       toast.success("Medication marked as taken");
-      refetch();
+      void refetch();
+      void refetchActive();
     },
     onError: () => {
       toast.error("Failed to log medication");
@@ -81,13 +90,41 @@ export default function MedicationsPage() {
     setFormData({ name: "", dosage: "", times: [], timeInput: "" });
   };
 
-  // Get today's medications
-  const today = new Date().toDateString();
-  const todayMedications = activeMedications?.filter((med) => {
-    // For simplicity, show all active medications as "today's medications"
-    // In a real app, you'd check if current time matches any of the times
-    return med.active;
-  }) ?? [];
+  // Real-time clock for medication timing
+  const [currentTime, setCurrentTime] = useState(new Date());
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Get today's medications with real-time status
+  const todayMedications = activeMedications?.filter((med) => med.active) ?? [];
+
+  // Check if medication is due (within current hour)
+  const isMedicationDue = (med: { times: string[] | null | undefined } | undefined) => {
+    if (!med?.times || !Array.isArray(med.times)) return false;
+    const now = currentTime;
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    
+    return med.times.some((timeStr: string) => {
+      // Parse time like "8:00 AM" or "8:00 PM"
+      const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
+      if (!match) return false;
+      
+      let hour = parseInt(match[1]!, 10);
+      const minute = parseInt(match[2]!, 10);
+      const period = match[3]!.toUpperCase();
+      
+      if (period === "PM" && hour !== 12) hour += 12;
+      if (period === "AM" && hour === 12) hour = 0;
+      
+      // Check if within current hour (with 5 minute buffer)
+      return hour === currentHour && Math.abs(minute - currentMinute) <= 5;
+    });
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -182,35 +219,48 @@ export default function MedicationsPage() {
             <p className="text-sm text-gray-500">No medications scheduled for today</p>
           ) : (
             <div className="space-y-2">
-              {todayMedications.map((med) => (
-                <div
-                  key={med.id}
-                  className="flex items-center justify-between p-3 border rounded-lg"
-                >
-                  <div>
-                    <p className="font-medium">{med.name}</p>
-                    {med.dosage && <p className="text-sm text-gray-600">{med.dosage}</p>}
-                    {med.times && med.times.length > 0 && (
-                      <p className="text-xs text-gray-500">
-                        Times: {Array.isArray(med.times) ? med.times.join(", ") : ""}
-                      </p>
-                    )}
-                  </div>
-                  <Button
-                    size="sm"
-                    onClick={() =>
-                    logMedication.mutate({
-                      medicationId: med.id,
-                      userId,
-                    })
-                  }
-                    disabled={logMedication.isPending}
+              {todayMedications.map((med) => {
+                const isDue = isMedicationDue(med);
+                return (
+                  <div
+                    key={med.id}
+                    className={`flex items-center justify-between p-3 border rounded-lg transition-all ${
+                      isDue ? "border-orange-500 bg-orange-50 animate-pulse" : ""
+                    }`}
                   >
-                    <Check className="mr-2 h-4 w-4" />
-                    Mark as Taken
-                  </Button>
-                </div>
-              ))}
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">{med.name}</p>
+                        {isDue && (
+                          <span className="px-2 py-0.5 text-xs font-semibold bg-orange-500 text-white rounded-full animate-bounce">
+                            Due Now!
+                          </span>
+                        )}
+                      </div>
+                      {med.dosage && <p className="text-sm text-gray-600">{med.dosage}</p>}
+                      {med.times && med.times.length > 0 && (
+                        <p className="text-xs text-gray-500">
+                          Times: {Array.isArray(med.times) ? med.times.join(", ") : ""}
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant={isDue ? "default" : "outline"}
+                      onClick={() =>
+                        logMedication.mutate({
+                          medicationId: med.id,
+                          userId,
+                        })
+                      }
+                      disabled={logMedication.isPending}
+                    >
+                      <Check className="mr-2 h-4 w-4" />
+                      Mark as Taken
+                    </Button>
+                  </div>
+                );
+              })}
             </div>
           )}
         </CardContent>

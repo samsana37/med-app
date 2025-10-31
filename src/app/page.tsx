@@ -90,6 +90,7 @@ export default function HomePage() {
         <div className="container mx-auto px-4 text-center text-gray-600">
           <p>MedAlert - Proof of Concept for College Project</p>
           <p className="mt-2 text-sm">This is a demo application. Not for actual medical use.</p>
+          <p className="mt-1 text-xs text-gray-500">⚠️ Not HIPAA compliant - For demonstration purposes only</p>
         </div>
       </footer>
     </div>

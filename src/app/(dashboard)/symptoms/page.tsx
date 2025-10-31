@@ -23,7 +23,11 @@ export default function SymptomsPage() {
   const user = getCurrentUser();
   const userId = user?.id ?? 1;
 
-  const { data: symptoms, refetch } = api.symptom.getAll.useQuery({ userId });
+  // Real-time updates for symptoms
+  const { data: symptoms, refetch } = api.symptom.getAll.useQuery(
+    { userId },
+    { refetchInterval: 45000 } // Update every 45 seconds
+  );
   const createSymptom = api.symptom.create.useMutation({
     onSuccess: () => {
       toast.success("Symptom logged successfully");

@@ -31,13 +31,18 @@ export function validateCredentials(email: string, password: string): boolean {
 
 /**
  * Sign in user (frontend only)
+ * Uses seeded user data (ID: 1)
  */
-export function signIn(email: string, password: string): { success: boolean; user?: User } {
+export async function signIn(email: string, password: string): Promise<{ success: boolean; user?: User }> {
   if (validateCredentials(email, password)) {
+    // Default user data matching seeded database entry
     const user: User = {
-      id: 1,
+      id: 1, // Matches seeded user ID
       email: DEMO_CREDENTIALS.email,
-      name: "Demo User",
+      name: "John Doe",
+      age: 35,
+      bloodType: "O+",
+      allergies: "Penicillin, Shellfish",
     };
     
     // Store session in localStorage

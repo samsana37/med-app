@@ -13,6 +13,15 @@ export const userRouter = createTRPCRouter({
       return user ?? null;
     }),
 
+  getByEmail: publicProcedure
+    .input(z.object({ email: z.string().email() }))
+    .query(async ({ ctx, input }) => {
+      const user = await ctx.db.query.users.findFirst({
+        where: eq(users.email, input.email),
+      });
+      return user ?? null;
+    }),
+
   create: publicProcedure
     .input(
       z.object({
