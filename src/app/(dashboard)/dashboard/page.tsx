@@ -17,7 +17,7 @@ export default function DashboardPage() {
   const [isEmergencyOpen, setIsEmergencyOpen] = useState(false);
 
   // Enable real-time updates with refetch intervals
-  const { data: medications, refetch: refetchMedications } = api.medication.getActive.useQuery(
+  const { data: medications } = api.medication.getActive.useQuery(
     { userId },
     { refetchInterval: 30000 } // Refetch every 30 seconds
   );
@@ -25,7 +25,7 @@ export default function DashboardPage() {
     { userId },
     { refetchInterval: 60000 } // Refetch every minute
   );
-  const { data: symptoms, refetch: refetchSymptoms } = api.symptom.getAll.useQuery(
+  const { data: symptoms } = api.symptom.getAll.useQuery(
     { userId },
     { refetchInterval: 45000 } // Refetch every 45 seconds
   );
@@ -49,24 +49,24 @@ export default function DashboardPage() {
 
   const handleCopyEmergencyInfo = () => {
     const userInfo = `
-EMERGENCY ALERT - ${user?.name || "User"}
+EMERGENCY ALERT - ${user?.name ?? "User"}
 Date: ${new Date().toLocaleString()}
 
 PATIENT INFORMATION:
-- Name: ${user?.name || "N/A"}
-- Age: ${user?.age || "N/A"}
-- Blood Type: ${user?.bloodType || "N/A"}
-- Allergies: ${user?.allergies || "None recorded"}
+- Name: ${user?.name ?? "N/A"}
+- Age: ${user?.age ?? "N/A"}
+- Blood Type: ${user?.bloodType ?? "N/A"}
+- Allergies: ${user?.allergies ?? "None recorded"}
 
 EMERGENCY CONTACTS:
 ${caregivers?.map((c) => `
-- ${c.name} (${c.relationship || "Contact"})
-  Phone: ${c.phone || "N/A"}
-  Email: ${c.email || "N/A"}
-`).join("") || "No contacts added"}
+- ${c.name} (${c.relationship ?? "Contact"})
+  Phone: ${c.phone ?? "N/A"}
+  Email: ${c.email ?? "N/A"}
+`).join("") ?? "No contacts added"}
     `.trim();
 
-    navigator.clipboard.writeText(userInfo);
+    void navigator.clipboard.writeText(userInfo);
     toast.success("Emergency information copied to clipboard");
   };
 
@@ -138,10 +138,10 @@ ${caregivers?.map((c) => `
             <div>
               <h3 className="font-semibold mb-2">Patient Information</h3>
               <div className="bg-gray-50 p-4 rounded-lg space-y-1">
-                <p><strong>Name:</strong> {user?.name || "N/A"}</p>
-                <p><strong>Age:</strong> {user?.age || "N/A"}</p>
-                <p><strong>Blood Type:</strong> {user?.bloodType || "N/A"}</p>
-                <p><strong>Allergies:</strong> {user?.allergies || "None recorded"}</p>
+                <p><strong>Name:</strong> {user?.name ?? "N/A"}</p>
+                <p><strong>Age:</strong> {user?.age ?? "N/A"}</p>
+                <p><strong>Blood Type:</strong> {user?.bloodType ?? "N/A"}</p>
+                <p><strong>Allergies:</strong> {user?.allergies ?? "None recorded"}</p>
               </div>
             </div>
 
@@ -175,7 +175,7 @@ ${caregivers?.map((c) => `
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Today's Medications</CardTitle>
+            <CardTitle className="text-lg">Today&apos;s Medications</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-baseline justify-between">
@@ -271,8 +271,8 @@ ${caregivers?.map((c) => `
 
         <Card>
           <CardHeader>
-            <CardTitle>Today's Medications</CardTitle>
-            <CardDescription>Check off medications you've taken</CardDescription>
+            <CardTitle>Today&apos;s Medications</CardTitle>
+            <CardDescription>Check off medications you&apos;ve taken</CardDescription>
           </CardHeader>
           <CardContent>
             {medications && medications.length > 0 ? (

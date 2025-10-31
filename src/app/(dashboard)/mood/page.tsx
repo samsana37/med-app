@@ -38,7 +38,7 @@ export default function MoodPage() {
   const createMood = api.mood.create.useMutation({
     onSuccess: () => {
       toast.success("Mood logged successfully");
-      refetch();
+      void refetch();
       setIsDialogOpen(false);
       setMoodData({ mood: 3, notes: "", entryDate: "" });
     },
@@ -50,7 +50,7 @@ export default function MoodPage() {
   const createJournal = api.mood.createJournal.useMutation({
     onSuccess: () => {
       toast.success("Journal entry created");
-      refetchJournals();
+      void refetchJournals();
       setIsJournalDialogOpen(false);
       setJournalData({ title: "", content: "", entryDate: "" });
     },
@@ -62,7 +62,7 @@ export default function MoodPage() {
   const deleteJournal = api.mood.deleteJournal.useMutation({
     onSuccess: () => {
       toast.success("Journal entry deleted");
-      refetchJournals();
+      void refetchJournals();
     },
     onError: () => {
       toast.error("Failed to delete journal entry");

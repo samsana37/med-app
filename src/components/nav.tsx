@@ -6,7 +6,6 @@ import { signOut, getCurrentUser } from "~/lib/auth";
 import { Button } from "~/components/ui/button";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { useEffect, useState } from "react";
 import { api } from "~/trpc/react";
 
 const navigation = [
@@ -100,7 +99,7 @@ export function Nav() {
             )}
             {user && (
               <span className="text-sm text-gray-600 hidden sm:inline">
-                {user.name || user.email}
+                {user.name ?? user.email}
               </span>
             )}
             <Button variant="outline" onClick={handleSignOut}>

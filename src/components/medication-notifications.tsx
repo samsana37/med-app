@@ -21,7 +21,7 @@ export function MedicationNotifications() {
       .map((med) => ({
         id: med.id,
         name: med.name,
-        dosage: med.dosage || undefined,
+        dosage: med.dosage ?? undefined,
         times: Array.isArray(med.times) ? med.times : [],
       }));
 

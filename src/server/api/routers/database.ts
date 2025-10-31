@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ilike, or } from "drizzle-orm";
+import { ilike } from "drizzle-orm";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { medicines, conditions } from "~/server/db/schema";
 

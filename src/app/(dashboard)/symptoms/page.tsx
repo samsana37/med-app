@@ -31,7 +31,7 @@ export default function SymptomsPage() {
   const createSymptom = api.symptom.create.useMutation({
     onSuccess: () => {
       toast.success("Symptom logged successfully");
-      refetch();
+      void refetch();
       setIsDialogOpen(false);
       setFormData({ name: "", severity: "Mild", notes: "", symptomDate: "" });
     },
@@ -43,7 +43,7 @@ export default function SymptomsPage() {
   const deleteSymptom = api.symptom.delete.useMutation({
     onSuccess: () => {
       toast.success("Symptom deleted");
-      refetch();
+      void refetch();
     },
     onError: () => {
       toast.error("Failed to delete symptom");
@@ -90,7 +90,7 @@ export default function SymptomsPage() {
             <DialogHeader>
               <DialogTitle>Log Symptom</DialogTitle>
               <DialogDescription>
-                Record a symptom you're experiencing
+                Record a symptom you&apos;re experiencing
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">

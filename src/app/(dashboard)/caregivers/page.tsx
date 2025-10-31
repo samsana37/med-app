@@ -9,7 +9,7 @@ import { Label } from "~/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "~/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Trash2, Edit, Phone, Mail } from "lucide-react";
+import { Plus, Trash2, Phone, Mail } from "lucide-react";
 
 export default function CaregiversPage() {
   const user = getCurrentUser();
@@ -23,19 +23,19 @@ export default function CaregiversPage() {
   const createCaregiver = api.caregiver.create.useMutation({
     onSuccess: () => {
       toast.success("Emergency contact added successfully");
-      refetch();
+      void refetch();
       setIsDialogOpen(false);
       setFormData({ name: "", relationship: "", phone: "", email: "" });
     },
     onError: (error) => {
-      toast.error(error.message || "Failed to add contact");
+      toast.error(error.message ?? "Failed to add contact");
     },
   });
 
   const deleteCaregiver = api.caregiver.delete.useMutation({
     onSuccess: () => {
       toast.success("Contact removed");
-      refetch();
+      void refetch();
     },
     onError: () => {
       toast.error("Failed to remove contact");

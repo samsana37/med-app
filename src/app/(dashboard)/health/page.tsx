@@ -25,7 +25,7 @@ export default function HealthPage() {
   const createVitalSign = api.health.createVitalSign.useMutation({
     onSuccess: () => {
       toast.success("Vital sign logged successfully");
-      refetch();
+      void refetch();
       setIsDialogOpen(false);
       setFormData({ type: "blood_pressure", value: "" });
     },
@@ -37,7 +37,7 @@ export default function HealthPage() {
   const deleteVitalSign = api.health.deleteVitalSign.useMutation({
     onSuccess: () => {
       toast.success("Vital sign deleted");
-      refetch();
+      void refetch();
     },
     onError: () => {
       toast.error("Failed to delete vital sign");
@@ -146,19 +146,19 @@ export default function HealthPage() {
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <Label className="text-gray-600">Name</Label>
-              <p className="font-medium">{user?.name || "Not set"}</p>
+              <p className="font-medium">{user?.name ?? "Not set"}</p>
             </div>
             <div>
               <Label className="text-gray-600">Age</Label>
-              <p className="font-medium">{user?.age || "Not set"}</p>
+              <p className="font-medium">{user?.age ?? "Not set"}</p>
             </div>
             <div>
               <Label className="text-gray-600">Blood Type</Label>
-              <p className="font-medium">{user?.bloodType || "Not set"}</p>
+              <p className="font-medium">{user?.bloodType ?? "Not set"}</p>
             </div>
             <div>
               <Label className="text-gray-600">Allergies</Label>
-              <p className="font-medium">{user?.allergies || "None recorded"}</p>
+              <p className="font-medium">{user?.allergies ?? "None recorded"}</p>
             </div>
           </div>
           <div className="mt-4">
@@ -192,7 +192,7 @@ export default function HealthPage() {
                 <TableBody>
                   {vitalSigns.map((vital) => {
                     const typeLabel =
-                      vitalSignTypes.find((t) => t.value === vital.type)?.label || vital.type;
+                      vitalSignTypes.find((t) => t.value === vital.type)?.label ?? vital.type;
                     return (
                       <TableRow key={vital.id}>
                         <TableCell>

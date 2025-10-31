@@ -12,10 +12,10 @@ import { Save } from "lucide-react";
 export default function ProfilePage() {
   const [user, setUser] = useState(getCurrentUser());
   const [formData, setFormData] = useState({
-    name: user?.name || "",
-    age: user?.age || "",
-    bloodType: user?.bloodType || "",
-    allergies: user?.allergies || "",
+    name: user?.name ?? "",
+    age: user?.age ?? "",
+    bloodType: user?.bloodType ?? "",
+    allergies: user?.allergies ?? "",
   });
 
   useEffect(() => {
@@ -23,10 +23,10 @@ export default function ProfilePage() {
     setUser(currentUser);
     if (currentUser) {
       setFormData({
-        name: currentUser.name || "",
-        age: currentUser.age?.toString() || "",
-        bloodType: currentUser.bloodType || "",
-        allergies: currentUser.allergies || "",
+        name: currentUser.name ?? "",
+        age: currentUser.age?.toString() ?? "",
+        bloodType: currentUser.bloodType ?? "",
+        allergies: currentUser.allergies ?? "",
       });
     }
   }, []);
@@ -36,10 +36,10 @@ export default function ProfilePage() {
     if (!user) return;
     const updatedUser = {
       ...user,
-      name: formData.name || undefined,
+      name: formData.name && formData.name !== "" ? formData.name : undefined,
       age: formData.age && formData.age !== "" && typeof formData.age === "string" ? parseInt(formData.age, 10) : (typeof formData.age === "number" ? formData.age : undefined),
-      bloodType: formData.bloodType || undefined,
-      allergies: formData.allergies || undefined,
+      bloodType: formData.bloodType && formData.bloodType !== "" ? formData.bloodType : undefined,
+      allergies: formData.allergies && formData.allergies !== "" ? formData.allergies : undefined,
     };
     updateUser(updatedUser);
     setUser(getCurrentUser());
@@ -62,7 +62,7 @@ export default function ProfilePage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" value={user?.email || ""} disabled />
+              <Input id="email" value={user?.email ?? ""} disabled />
               <p className="text-xs text-gray-500">Email cannot be changed</p>
             </div>
             <div className="space-y-2">

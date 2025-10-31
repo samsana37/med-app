@@ -46,7 +46,8 @@ export interface MedicationReminder {
  * Parse time string (e.g., "8:00 AM") to hour and minute
  */
 function parseTime(timeStr: string): { hour: number; minute: number } | null {
-  const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
+  const regex = /(\d+):(\d+)\s*(AM|PM)/i;
+  const match = regex.exec(timeStr);
   if (!match) return null;
 
   let hour = parseInt(match[1]!, 10);
@@ -117,11 +118,11 @@ export function startMedicationReminders(
   getMedications: () => MedicationReminder[],
 ): () => void {
   // Check immediately
-  checkMedicationReminders(getMedications());
+  void checkMedicationReminders(getMedications());
 
   // Then check every minute
   const intervalId = setInterval(() => {
-    checkMedicationReminders(getMedications());
+    void checkMedicationReminders(getMedications());
   }, 60000); // 60 seconds
 
   // Return cleanup function

@@ -32,7 +32,7 @@ export default function MedicationsPage() {
       setIsDialogOpen(false);
     },
     onError: (error) => {
-      toast.error(error.message || "Failed to add medication");
+      toast.error(error.message ?? "Failed to add medication");
     },
   });
 
@@ -111,7 +111,8 @@ export default function MedicationsPage() {
     
     return med.times.some((timeStr: string) => {
       // Parse time like "8:00 AM" or "8:00 PM"
-      const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
+      const regex = /(\d+):(\d+)\s*(AM|PM)/i;
+      const match = regex.exec(timeStr);
       if (!match) return false;
       
       let hour = parseInt(match[1]!, 10);
@@ -211,8 +212,8 @@ export default function MedicationsPage() {
       {/* Today's Medications */}
       <Card className="mb-8">
         <CardHeader>
-          <CardTitle>Today's Medications</CardTitle>
-          <CardDescription>Check off medications you've taken today</CardDescription>
+          <CardTitle>Today&apos;s Medications</CardTitle>
+          <CardDescription>Check off medications you&apos;ve taken today</CardDescription>
         </CardHeader>
         <CardContent>
           {todayMedications.length === 0 ? (

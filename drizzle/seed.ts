@@ -675,6 +675,6 @@ seed()
     process.exit(1);
   })
   .finally(() => {
-    sql.end();
+    void sql.end();
   });
 

@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 
 export function LiveIndicator() {
   const [isOnline, setIsOnline] = useState(true);
-  const [lastUpdate, setLastUpdate] = useState(new Date());
 
   useEffect(() => {
     // Check online status
@@ -16,15 +15,9 @@ export function LiveIndicator() {
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
 
-    // Update timestamp periodically
-    const interval = setInterval(() => {
-      setLastUpdate(new Date());
-    }, 5000);
-
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
-      clearInterval(interval);
     };
   }, []);
 
